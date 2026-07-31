@@ -38,7 +38,6 @@
 dnf_festival_price_analysis/
 ├── index.html                        # 首页入口：原始物价明细页面
 ├── compare.html                      # 独立页面：跨年同类对比分析页面
-├── dnf_festival_price_analysis.html  # 兼容镜像入口 (同 index.html)
 ├── css/
 │   └── style.css                     # 独立 CSS 样式文件
 ├── js/
