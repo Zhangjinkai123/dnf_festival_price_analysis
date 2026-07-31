@@ -1,0 +1,18 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# IDE & Editor Directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node / NPM (if any)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.log
