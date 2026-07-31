@@ -1,5 +1,5 @@
 /**
- * DNF 节日礼包物价记录档案与分析 - 应用核心控制逻辑
+ * 毒奶粉节日礼包物价记录档案与分析 - 应用核心控制逻辑
  */
 
 (async function () {
@@ -894,7 +894,7 @@
       if (!total) return notice('当前无有效物价数据可供导出');
       const ok = confirm(`确定要导出全库物价数据为 JSON 文件吗？\n当前共有 ${total} 条物价数据记录。`);
       if (ok) {
-        const fileName = `dnf节日礼包物价数据_${getTimestampStr()}.json`;
+        const fileName = `毒奶粉节日礼包物价数据_${getTimestampStr()}.json`;
         downloadFile(JSON.stringify(items, null, 2), fileName, 'application/json');
         notice(`已成功导出 ${total} 条 JSON 物价数据文件！`);
       }
@@ -913,7 +913,7 @@
           ...items.map(x => [x.year, x.season, x.date, x.name, x.current, x.high, x.low, x.source])
         ].map(r => r.map(v => '"' + String(v).replaceAll('"', '""') + '"').join(',')).join('\n');
 
-        const fileName = `dnf节日礼包物价数据_${getTimestampStr()}.csv`;
+        const fileName = `毒奶粉节日礼包物价数据_${getTimestampStr()}.csv`;
         downloadFile('\ufeff' + csvLines, fileName, 'text/csv;charset=utf-8');
         notice(`已成功导出 ${total} 条 CSV 物价数据文件！`);
       }

@@ -1,4 +1,4 @@
-# DNF 节日礼包物价分析系统 - 变更与开发日志 (CHANGELOG)
+# 毒奶粉节日礼包物价分析系统 - 变更与开发日志 (CHANGELOG)
 
 **更新日期**：2026年7月31日  
 **主入口文件**：[index.html](file:///d:/self/work/aiproject/outputs/dnf_festival_price_analysis/index.html) | [compare.html](file:///d:/self/work/aiproject/outputs/dnf_festival_price_analysis/compare.html)  
@@ -6,7 +6,7 @@
 ---
 
 ## 📌 项目概述
-本项目为 DNF 节日礼包（耕耘、春节、夏日、金秋）历年道具价格的录入、跨年对比分析、OCR 截图提取及数据管理系统。
+本项目为毒奶粉节日礼包（耕耘、春节、夏日、金秋）历年道具价格的录入、跨年对比分析、OCR 截图提取及数据管理系统。
 
 ---
 
