@@ -100,7 +100,7 @@
   }
 
   function seasonClass(s) {
-    return s === '春节' ? 'spring' : s === '夏日' ? 'summer' : s === '金秋' ? 'autumn' : '';
+    return s === '春节' ? 'badge-spring' : s === '夏日' ? 'badge-summer' : s === '金秋' ? 'badge-autumn' : 'badge-default';
   }
 
   // ---------------- 产物映射字典管理 ----------------
@@ -163,13 +163,13 @@
 
     if (countEl) {
       const total = (items || []).length;
-      countEl.innerHTML = `已筛选出 <strong>${rows.length}</strong> 条记录 (全库 ${total} 条)`;
+      countEl.innerHTML = `已筛选出 <strong class="text-indigo-600 font-bold">${rows.length}</strong> 条记录 (全库 ${total} 条)`;
     }
 
     if (!tbody) return;
 
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted);">未查找到匹配条目。若数据丢失，请点击“重置筛选与恢复数据”按钮。</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-400 text-xs">未查找到匹配条目。若数据丢失，请点击“重置筛选”按钮。</td></tr>`;
       return;
     }
 
@@ -179,15 +179,19 @@
       const rangeIncrease = (hasLow && hasHigh) ? (Number(x.high) - Number(x.low)) / Number(x.low) : null;
       const rangeIncreaseText = rangeIncrease === null ? '--' : (rangeIncrease * 100).toFixed(1) + '%';
 
-      return `<tr>
-        <td>${x.year || '--'}</td>
-        <td><span class="badge ${seasonClass(x.season || '')}">${x.season || '--'}</span></td>
-        <td>${x.date || '--'}</td>
-        <td>${x.name || '--'}</td>
-        <td class="num">${fmt(x.current)}</td>
-        <td class="num high">${fmt(x.high)}</td>
-        <td class="num low">${fmt(x.low)}</td>
-        <td class="num ${rangeIncrease > 0 ? 'high' : ''}">${rangeIncreaseText}</td>
+      return `<tr class="hover:bg-slate-50/80 transition-colors">
+        <td class="py-3 px-4 font-semibold text-slate-900">${x.year || '--'}</td>
+        <td class="py-3 px-4"><span class="badge ${seasonClass(x.season || '')}">${x.season || '--'}</span></td>
+        <td class="py-3 px-4 text-xs text-slate-500 font-mono">${x.date || '--'}</td>
+        <td class="py-3 px-4 font-semibold text-slate-800">${x.name || '--'}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900">${fmt(x.current)}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-rose-600">${fmt(x.high)}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-emerald-600">${fmt(x.low)}</td>
+        <td class="py-3 px-4 text-right font-mono">
+          ${rangeIncrease > 0 
+            ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100">+${rangeIncreaseText}</span>` 
+            : `<span class="text-slate-400">${rangeIncreaseText}</span>`}
+        </td>
       </tr>`;
     }).join('');
   }
@@ -211,7 +215,6 @@
       let matchedCat = null;
       let maxKwLen = -1;
 
-      // 优先匹配更精确/更长关键字规则（防止 BUFF+2 称号被普通称号关键字误拦截）
       categoryMap.forEach(c => {
         if (c.season === '通用' || c.season === item.season) {
           (c.keywords || []).forEach(k => {
@@ -247,7 +250,7 @@
     if (!container) return;
 
     if (groups.size === 0) {
-      container.innerHTML = `<div class="panel" style="text-align:center;padding:40px;color:var(--muted);">未检索到匹配的节日同类产物数据。</div>`;
+      container.innerHTML = `<div class="bg-white rounded-2xl p-10 text-center border border-slate-200/80 shadow-sm text-slate-400 text-sm">未检索到匹配的节日同类产物数据。</div>`;
       return;
     }
 
@@ -257,32 +260,38 @@
       groupData.items.sort((a, b) => (b.year || 0) - (a.year || 0) || new Date(b.date || 0) - new Date(a.date || 0));
 
       html += `
-      <div class="groupCard">
-        <div class="groupHead">
-          <div class="groupTitle">
-            🏷️ 【${label}】
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
+        <div class="bg-slate-50/80 border-b border-slate-200/80 px-6 py-4 flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <span class="text-base font-bold text-slate-900">🏷️ 【${label}】</span>
             <span class="badge ${seasonClass(groupData.season)}">${groupData.season}系列</span>
           </div>
-          <div class="groupCount">共收录 ${groupData.items.length} 年数据 (年份降序)</div>
+          <div class="text-xs text-slate-500 font-medium bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+            共收录 <strong class="text-indigo-600 font-bold">${groupData.items.length}</strong> 年数据 (年份降序)
+          </div>
         </div>
-        <div class="groupBody">
+        <div class="divide-y divide-slate-100">
       `;
 
       groupData.items.forEach(it => {
-        const low = it.low || it.current || 0;
-        const high = it.high || it.current || 0;
         const priceDisplay = (it.low !== null && it.low !== undefined && !isNaN(it.low) && Number(it.low) > 0) ? it.low : it.current;
-        let percent = 50;
-        if (high > low && it.current) {
-          percent = Math.min(100, Math.max(0, ((it.current - low) / (high - low)) * 100));
-        }
 
         html += `
-          <div class="compareRow">
-            <div><span class="badge year">${it.year || '--'} 年</span></div>
-            <div><span class="badge ${seasonClass(it.season)}">${it.season || '--'}</span></div>
-            <div class="compareItemName" title="${it.name}">${it.name}</div>
-            <div class="comparePrice" title="历史最低价: ${fmt(priceDisplay)}万 (统计日期: ${it.date})">${fmt(priceDisplay)} 万</div>
+          <div class="grid grid-cols-12 gap-3 items-center px-6 py-3.5 hover:bg-slate-50/80 transition-colors">
+            <div class="col-span-2 sm:col-span-2">
+              <span class="badge badge-year font-mono">${it.year || '--'} 年</span>
+            </div>
+            <div class="col-span-3 sm:col-span-2">
+              <span class="badge ${seasonClass(it.season)}">${it.season || '--'}</span>
+            </div>
+            <div class="col-span-4 sm:col-span-5 font-semibold text-slate-800 text-sm truncate" title="${it.name}">
+              ${it.name}
+            </div>
+            <div class="col-span-3 sm:col-span-3 text-right">
+              <span class="text-base font-mono font-bold text-indigo-600" title="历史最低价: ${fmt(priceDisplay)}万 (统计日期: ${it.date})">
+                ${fmt(priceDisplay)} <span class="text-xs text-slate-500 font-normal">万</span>
+              </span>
+            </div>
           </div>
         `;
       });
@@ -309,7 +318,7 @@
       const pageMode = (document.body && document.body.dataset.page) ? document.body.dataset.page : 'table';
       if (pageMode === 'group') {
         if ($('#tableView')) $('#tableView').style.display = 'none';
-        if ($('#groupView')) $('#groupView').style.display = 'flex';
+        if ($('#groupView')) $('#groupView').style.display = 'block';
         renderGroupView();
       } else {
         if ($('#tableView')) $('#tableView').style.display = 'block';
@@ -415,8 +424,8 @@
 
       suggestBox.innerHTML = matches.map((m, idx) => `
         <div class="suggestItem ${idx === selectedIndex ? 'active' : ''}" data-value="${m.name}">
-          <div>${highlightText(m.name, q)}</div>
-          <span class="suggestTag">${m.type}</span>
+          <div class="flex-1 min-w-0 truncate font-medium text-slate-800" title="${m.name}">${highlightText(m.name, q)}</div>
+          <span class="suggestTag whitespace-nowrap shrink-0">${m.type}</span>
         </div>
       `).join('');
 
@@ -551,157 +560,153 @@
       return;
     }
 
-    const pBox = $('#ocrProgress');
-    const pBar = $('#ocrProgressBar');
-    const status = $('#ocrStatus');
-    if (pBox) pBox.style.display = 'block';
-    if (pBar) pBar.style.width = '10%';
-    if (status) status.textContent = '正在启动 OCR 识别引擎（首次需加载中文包）...';
+    const progressBox = $('#ocrProgress');
+    const progressBar = $('#ocrProgressBar');
+    const statusBox = $('#ocrStatus');
+    const btnOcr = $('#btnOcr');
+
+    if (progressBox) progressBox.style.display = 'block';
+    if (progressBar) progressBar.style.width = '5%';
+    if (btnOcr) { btnOcr.disabled = true; btnOcr.textContent = '⏳ 识别中...'; }
 
     try {
       if (!ocrWorker) {
+        if (statusBox) statusBox.textContent = '正在初始化 OCR 识别引擎中...';
         ocrWorker = await Tesseract.createWorker('chi_sim+eng');
       }
 
-      const extractedLines = [];
-      let detectedDate = null;
+      let combinedText = '';
 
-      for (let idx = 0; idx < imageSources.length; idx++) {
-        const src = imageSources[idx];
-        if (status) status.textContent = `正在识别第 ${idx + 1}/${imageSources.length} 张截图...`;
-        if (pBar) pBar.style.width = `${Math.round(((idx + 0.3) / imageSources.length) * 100)}%`;
+      for (let i = 0; i < imageSources.length; i++) {
+        const src = imageSources[i];
+        const fileName = (src instanceof File) ? src.name : `剪贴板截图_${i+1}`;
+        if (statusBox) statusBox.textContent = `正在识别第 (${i+1}/${imageSources.length}) 张图片 [${fileName}]...`;
 
-        const res = await ocrWorker.recognize(src);
-        if (pBar) pBar.style.width = `${Math.round(((idx + 0.9) / imageSources.length) * 100)}%`;
-        const text = res.data.text;
+        const ret = await ocrWorker.recognize(src);
+        if (progressBar) progressBar.style.width = `${Math.round(((i + 1) / imageSources.length) * 100)}%`;
 
-        const dateMatch = text.match(/统计日期[：:\s]*(\d{4})[年.-](\d{1,2})[月.-](\d{1,2})/);
-        if (dateMatch) {
-          detectedDate = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2, '0')}-${String(dateMatch[3]).padStart(2, '0')}`;
-        }
-
-        const rawLines = text.split(/\n+/);
-        for (let raw of rawLines) {
-          const line = raw.trim();
-          if (!line || /道具名称|本期价格|历史高价|下架日期|对比差额|序号|图标/.test(line)) continue;
-
-          const parts = line.split(/\t|,|，|\s{2,}/).map(x => x.trim()).filter(Boolean);
-          if (parts.length >= 4) {
-            let name = '';
-            const numbers = [];
-
-            for (let p of parts) {
-              if (/^\d+(\.\d+)?(万|亿)?(\d+)?$/.test(p) || /^(\d+)万(\d+)$/.test(p) || /^(\d+)亿(\d+)$/.test(p)) {
-                numbers.push(p);
-              } else if (p.length >= 2 && !/^\d+$/.test(p) && !name) {
-                name = p;
+        if (ret && ret.data && ret.data.text) {
+          const rawLines = ret.data.text.split('\n');
+          rawLines.forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+            const priceMatches = trimmed.match(/(\d+(?:\.\d+)?)\s*(万|亿)?/g);
+            if (priceMatches && priceMatches.length > 0) {
+              const namePart = trimmed.replace(/(\d+(?:\.\d+)?)\s*(万|亿)?/g, '').trim().replace(/^[,，\s]+|[,，\s]+$/g, '');
+              const cleanName = namePart || 'OCR未识别名称道具';
+              const parsedPrices = priceMatches.map(p => parsePrice(p)).filter(n => !isNaN(n));
+              if (parsedPrices.length > 0) {
+                combinedText += `${cleanName},${parsedPrices.join(',')}\n`;
               }
             }
-
-            if (name && numbers.length >= 3) {
-              const cur = numbers[0];
-              const high = numbers[numbers.length - 2];
-              const low = numbers[numbers.length - 1];
-              extractedLines.push(`${name},${cur},${high},${low}`);
-            } else if (parts.length >= 4) {
-              extractedLines.push(parts.slice(0, 4).join(','));
-            }
-          }
+          });
         }
       }
 
-      if (detectedDate && $('#importDate')) {
-        $('#importDate').value = detectedDate;
-        const y = detectedDate.split('-')[0];
-        if (y && $('#importYear')) $('#importYear').value = y;
+      const textArea = $('#importText');
+      if (textArea) {
+        const existing = textArea.value.trim();
+        textArea.value = existing ? existing + '\n' + combinedText.trim() : combinedText.trim();
       }
 
-      if (extractedLines.length > 0) {
-        const exist = $('#importText').value.trim();
-        $('#importText').value = (exist ? exist + '\n' : '') + extractedLines.join('\n');
-        if (status) status.textContent = `✅ 识别成功！已自动提取 ${extractedLines.length} 条道具物价数据。`;
-        notice(`OCR 识别成功！提取 ${extractedLines.length} 条道具物价`);
-      } else {
-        if (status) status.textContent = '⚠️ 未自动解析出标准表格行，已保留原文本在输入框，请核对。';
-        notice('未识别到标准数据列，请尝试提升截图清晰度');
-      }
-
-      if (pBar) pBar.style.width = '100%';
-      setTimeout(() => { if (pBox) pBox.style.display = 'none'; }, 2500);
+      if (statusBox) statusBox.textContent = `✅ OCR 识别完成！已解析提取文本放入下方框内，请检查确认后点击“导入数据”。`;
+      notice('OCR 截图文本自动解析提取成功！');
     } catch (err) {
-      console.error('OCR error:', err);
-      if (status) status.textContent = '❌ OCR 识别异常：' + (err.message || '引擎失败');
-      if (pBox) pBox.style.display = 'none';
-      notice('OCR 识别失败');
+      console.error('OCR Error:', err);
+      if (statusBox) statusBox.textContent = `❌ OCR 识别异常: ${err.message || '识别超时，请直接手动在下方文本框编辑录入'}`;
+      notice('OCR 识别失败，请手动在下方框内录入数据');
+    } finally {
+      if (btnOcr) { btnOcr.disabled = false; btnOcr.textContent = '🚀 一键 OCR 智能识别'; }
+      setTimeout(() => { if (progressBox) progressBox.style.display = 'none'; }, 2000);
     }
   }
 
   if ($('#btnOcr')) {
-    $('#btnOcr').onclick = async () => {
-      const files = $('#imageFile') ? $('#imageFile').files : null;
-      if (!files || !files.length) {
-        return notice('请先选择要识别的截图文件');
+    $('#btnOcr').onclick = () => {
+      const fileInput = $('#imageFile');
+      if (!fileInput || !fileInput.files || !fileInput.files.length) {
+        return notice('请先选择截图图片文件或按 Ctrl+V 粘贴图片！');
       }
-      const sources = [];
-      for (let f of files) {
-        sources.push(URL.createObjectURL(f));
-      }
-      await runOCR(sources);
-      sources.forEach(src => URL.revokeObjectURL(src));
+      runOCR(Array.from(fileInput.files));
     };
   }
 
-  // 剪贴板 Ctrl + V 直接识别图片
-  if ($('#importModal')) {
-    $('#importModal').addEventListener('paste', async e => {
-      const clipboardItems = (e.clipboardData || e.originalEvent.clipboardData).items;
-      let blob = null;
-      for (let item of clipboardItems) {
-        if (item.type.indexOf('image') !== -1) {
-          blob = item.getAsFile();
-          break;
-        }
-      }
-      if (blob) {
-        if (activePreviewUrl) URL.revokeObjectURL(activePreviewUrl);
-        activePreviewUrl = URL.createObjectURL(blob);
-        if ($('#imagePreview')) {
-          $('#imagePreview').src = activePreviewUrl;
-          $('#imagePreview').style.display = 'block';
-        }
-        notice('检测到剪贴板截图，正在进行 OCR 智能识别...');
-        await runOCR([activePreviewUrl]);
-      }
-    });
-  }
+  // 剪贴板粘贴截图识别支持
+  document.addEventListener('paste', e => {
+    const modal = $('#importModal');
+    if (!modal || !modal.open) return;
 
-  // 批量数据导入
+    const clipboardItems = e.clipboardData && e.clipboardData.items;
+    if (!clipboardItems) return;
+
+    const imageFiles = [];
+    for (let i = 0; i < clipboardItems.length; i++) {
+      const item = clipboardItems[i];
+      if (item.type.indexOf('image') !== -1) {
+        const blob = item.getAsFile();
+        if (blob) imageFiles.push(blob);
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      const img = $('#imagePreview');
+      if (activePreviewUrl) URL.revokeObjectURL(activePreviewUrl);
+      activePreviewUrl = URL.createObjectURL(imageFiles[0]);
+      if (img) {
+        img.src = activePreviewUrl;
+        img.style.display = 'block';
+      }
+      notice(`已获取剪贴板截图 (${imageFiles.length} 张)，开始自动识别...`);
+      runOCR(imageFiles);
+    }
+  });
+
+  // 批量数据导入提交
   if ($('#importSubmit')) {
     $('#importSubmit').onclick = () => {
-      const text = $('#importText').value.trim();
+      const rawText = $('#importText').value.trim();
+      if (!rawText) return notice('请在框内输入或粘贴要导入的数据');
+
       const season = $('#importSeason').value;
       const year = +$('#importYear').value;
       const date = $('#importDate').value;
-      const source = [...$('#imageFile').files].map(f => f.name).join('、') || '批量/OCR 文本导入';
 
-      if (!text || !year || !date) return notice('请填写年份、日期和至少一行数据');
-
+      const lines = rawText.split('\n').map(x => x.trim()).filter(Boolean);
       const addItems = [];
-      for (const line of text.split(/\n+/)) {
-        const p = line.trim().split(/\t|,|，|\s{2,}/).map(x => x.trim()).filter(Boolean);
-        if (p.length < 4) continue;
-        const [name, current, high, low] = p;
-        const n = [current, high, low].map(parsePrice);
-        if (name && n.every(Number.isFinite)) {
+
+      for (const line of lines) {
+        const parts = line.split(/[,，\t\s]+/).filter(Boolean);
+        if (parts.length >= 2) {
+          const name = parts[0];
+          const nums = parts.slice(1).map(x => parsePrice(x)).filter(n => !isNaN(n));
+
+          let current = nums[0] !== undefined ? nums[0] : null;
+          let high = nums[1] !== undefined ? nums[1] : current;
+          let low = nums[2] !== undefined ? nums[2] : current;
+
+          if (current !== null && high !== null && low !== null) {
+            const actualMin = Math.min(current, high, low);
+            const actualMax = Math.max(current, high, low);
+            low = actualMin;
+            high = actualMax;
+          }
+
+          let source = '批量导入';
+          const fileInput = $('#imageFile');
+          if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            source = `截图导入(${fileInput.files[0].name})`;
+          }
+
           addItems.push({
             id: generateUUID(),
             year,
             season,
             date,
             name,
-            current: n[0],
-            high: n[1],
-            low: n[2],
+            current,
+            high,
+            low,
             source
           });
         }
@@ -757,14 +762,14 @@
 
   // 映射规则配置渲染
   function renderCategoryModalRows(rules) {
-    const tbody = $('#categoryRulesBody');
+    const tbody = $('#categoryTableBody') || $('#categoryRulesBody');
     if (!tbody) return;
 
     tbody.innerHTML = rules.map((r) => {
       const kwStr = Array.isArray(r.keywords) ? r.keywords.join(', ') : String(r.keywords || '');
       return `<tr>
-        <td style="padding:6px 8px;">
-          <select class="cat-season-select" style="width:100%; height:32px; border:1px solid #c6d2db; border-radius:4px; padding:0 4px;">
+        <td class="py-2.5 px-3">
+          <select class="cat-season-select w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option ${r.season==='通用'?'selected':''}>通用</option>
             <option ${r.season==='春节'?'selected':''}>春节</option>
             <option ${r.season==='耕耘'?'selected':''}>耕耘</option>
@@ -772,14 +777,14 @@
             <option ${r.season==='金秋'?'selected':''}>金秋</option>
           </select>
         </td>
-        <td style="padding:6px 8px;">
-          <input class="cat-label-input" value="${r.label || ''}" placeholder="分类名称" style="width:100%; height:32px; border:1px solid #c6d2db; border-radius:4px; padding:0 8px;">
+        <td class="py-2.5 px-3">
+          <input class="cat-label-input w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="${r.label || ''}" placeholder="分类名称">
         </td>
-        <td style="padding:6px 8px;">
-          <input class="cat-keywords-input" value="${kwStr}" placeholder="用逗号分隔关键字" style="width:100%; height:32px; border:1px solid #c6d2db; border-radius:4px; padding:0 8px;">
+        <td class="py-2.5 px-3">
+          <input class="cat-keywords-input w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" value="${kwStr}" placeholder="用逗号分隔关键字">
         </td>
-        <td style="padding:6px 8px; text-align:center;">
-          <button type="button" class="btn" style="background:#fde8e8; color:var(--red); padding:4px 8px; font-size:12px; border:none; border-radius:3px;" onclick="this.closest('tr').remove()">删除</button>
+        <td class="py-2.5 px-3 text-center">
+          <button type="button" class="px-2.5 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200/60 rounded-lg text-xs font-semibold transition-all" onclick="this.closest('tr').remove()">删除</button>
         </td>
       </tr>`;
     }).join('');
@@ -794,12 +799,12 @@
 
   if ($('#addCategoryRuleBtn')) {
     $('#addCategoryRuleBtn').onclick = () => {
-      const tbody = $('#categoryRulesBody');
+      const tbody = $('#categoryTableBody') || $('#categoryRulesBody');
       if (!tbody) return;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="padding:6px 8px;">
-          <select class="cat-season-select" style="width:100%; height:32px; border:1px solid #c6d2db; border-radius:4px; padding:0 4px;">
+        <td class="py-2.5 px-3">
+          <select class="cat-season-select w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option>通用</option>
             <option>春节</option>
             <option>耕耘</option>
@@ -807,14 +812,14 @@
             <option>金秋</option>
           </select>
         </td>
-        <td style="padding:6px 8px;">
-          <input class="cat-label-input" placeholder="分类名称" style="width:100%; height:32px; border:1px solid #c6d2db; border-radius:4px; padding:0 8px;">
+        <td class="py-2.5 px-3">
+          <input class="cat-label-input w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="分类名称">
         </td>
-        <td style="padding:6px 8px;">
-          <input class="cat-keywords-input" placeholder="用逗号分隔关键字" style="width:100%; height:32px; border:1px solid #c6d2db; border-radius:4px; padding:0 8px;">
+        <td class="py-2.5 px-3">
+          <input class="cat-keywords-input w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="用逗号分隔关键字">
         </td>
-        <td style="padding:6px 8px; text-align:center;">
-          <button type="button" class="btn" style="background:#fde8e8; color:var(--red); padding:4px 8px; font-size:12px; border:none; border-radius:3px;" onclick="this.closest('tr').remove()">删除</button>
+        <td class="py-2.5 px-3 text-center">
+          <button type="button" class="px-2.5 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200/60 rounded-lg text-xs font-semibold transition-all" onclick="this.closest('tr').remove()">删除</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -836,7 +841,8 @@
 
   if ($('#saveCategoryRulesBtn')) {
     $('#saveCategoryRulesBtn').onclick = () => {
-      const rows = document.querySelectorAll('#categoryRulesBody tr');
+      const tbody = $('#categoryTableBody') || $('#categoryRulesBody');
+      const rows = tbody ? tbody.querySelectorAll('tr') : [];
       const newMap = [];
       rows.forEach(tr => {
         const seasonSelect = tr.querySelector('.cat-season-select');

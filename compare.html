@@ -4,76 +4,94 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DNF 节日礼包物价记录 - 跨年同类对比</title>
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body data-page="group">
-  <header>
-    <div class="topline">
+<body data-page="group" class="bg-slate-50 text-slate-800 min-h-screen">
+  <!-- 头部 Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <h1>DNF 节日礼包物价记录</h1>
-          <span class="statBadge" id="statBadge">已加载 0 条数据</span>
+        <div class="flex items-center gap-3 flex-wrap">
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>🎮</span> DNF 节日礼包物价记录
+          </h1>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-indigo-200 border border-white/15 backdrop-blur-md" id="statBadge">已加载 0 条数据</span>
         </div>
-        <div class="subtitle">耕耘、春节、夏日、金秋礼包价格档案与历史区间分析</div>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">耕耘、春节、夏日、金秋礼包价格档案与历史区间分析</p>
       </div>
-      <div class="tools">
-        <button class="btn outline" id="openCategoryModal">⚙️ 产物映射表</button>
-        <button class="btn outline" id="exportCsv">导出 CSV</button>
-        <button class="btn outline" id="exportJson">导出 JSON</button>
-        <button class="btn primary" id="openImport">导入截图数据</button>
-        <button class="btn" id="openAdd">新增条目</button>
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <button class="btn btn-outline" id="openCategoryModal">⚙️ 产物映射表</button>
+        <button class="btn btn-outline" id="exportCsv">导出 CSV</button>
+        <button class="btn btn-outline" id="exportJson">导出 JSON</button>
+        <button class="btn btn-primary" id="openImport">✨ 导入截图数据</button>
+        <button class="btn btn-secondary" id="openAdd">➕ 新增条目</button>
       </div>
     </div>
   </header>
 
-  <main>
-    <section class="filters">
-      <div class="field">
-        <label>礼包类型</label>
-        <select id="season">
-          <option value="all">全部礼包</option>
-          <option value="耕耘">耕耘礼包</option>
-          <option value="春节">春节礼包</option>
-          <option value="夏日">夏日礼包</option>
-          <option value="金秋">金秋礼包</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>年份</label>
-        <select id="year">
-          <option value="all">全部年份</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>页面切换</label>
-        <div class="navTabs">
-          <a href="index.html" class="navTab">📋 原始物价明细</a>
-          <a href="compare.html" class="navTab active">🏷️ 跨年同类对比</a>
+  <!-- 主主体 Main -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- 筛选面板 -->
+    <section class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm transition-all hover:shadow-md">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-4 items-end">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">礼包类型</label>
+          <select id="season" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+            <option value="all">全部礼包</option>
+            <option value="耕耘">耕耘礼包</option>
+            <option value="春节">春节礼包</option>
+            <option value="夏日">夏日礼包</option>
+            <option value="金秋">金秋礼包</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">年份</label>
+          <select id="year" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+            <option value="all">全部年份</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-3">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">页面切换</label>
+          <div class="navTabs flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 h-10">
+            <a href="index.html" class="navTab flex-1 flex items-center justify-center text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">📋 原始物价明细</a>
+            <a href="compare.html" class="navTab active flex-1 flex items-center justify-center text-xs font-semibold rounded-lg transition-all active:bg-indigo-600 active:text-white active:shadow-sm">🏷️ 跨年同类对比</a>
+          </div>
+        </div>
+
+        <div class="md:col-span-3 search relative">
+          <label class="block text-xs font-semibold text-slate-500 mb-1.5">搜索道具 / 分类</label>
+          <input id="search" placeholder="输入名称筛选（如：称号、增幅券）" autocomplete="off" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+          <div class="searchSuggest shadow-xl rounded-xl border border-slate-200" id="searchSuggest"></div>
+        </div>
+
+        <div class="md:col-span-2 flex justify-end">
+          <button class="btn btn-secondary w-full h-10 justify-center text-xs" id="reset">🔄 重置筛选</button>
         </div>
       </div>
-      <div class="field search">
-        <label>搜索道具 / 分类</label>
-        <input id="search" placeholder="输入名称筛选（如：称号、增幅券、犬夜叉）" autocomplete="off">
-        <div class="searchSuggest" id="searchSuggest"></div>
-      </div>
-      <button class="btn primary" id="reset">重置筛选与恢复数据</button>
     </section>
 
-    <!-- 跨年同类对比视图 -->
-    <section class="groupContainer" id="groupView"></section>
+    <!-- 跨年同类对比视图容器 -->
+    <section class="space-y-6" id="groupView"></section>
   </main>
 
+  <!-- 弹窗 1：导入截图数据对话框 -->
   <dialog id="importModal">
-    <div class="modalHead">
-      <h2>导入截图数据</h2>
-      <button class="iconBtn" data-close="importModal" title="关闭">×</button>
+    <div class="bg-slate-900 text-white px-6 py-5 flex justify-between items-center border-b border-slate-800">
+      <h2 class="text-lg font-bold flex items-center gap-2">✨ 导入截图数据</h2>
+      <button class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center text-lg transition-all" data-close="importModal" title="关闭">×</button>
     </div>
-    <div class="modalBody">
-      <div class="formGrid">
+    <div class="p-6 bg-white space-y-4 max-h-[75vh] overflow-y-auto">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label>礼包类型</label>
-          <select id="importSeason">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">礼包类型</label>
+          <select id="importSeason" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option>春节</option>
             <option selected>耕耘</option>
             <option>夏日</option>
@@ -81,46 +99,47 @@
           </select>
         </div>
         <div>
-          <label>年份</label>
-          <input id="importYear" type="number" value="2026" min="2020" max="2100">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">年份</label>
+          <input id="importYear" type="number" value="2026" min="2020" max="2100" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label>统计日期</label>
-          <input id="importDate" type="date" value="2026-06-18">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">统计日期</label>
+          <input id="importDate" type="date" value="2026-06-18" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
-        <div class="wide">
-          <label>上传原始截图或剪贴板粘贴 (Ctrl+V)</label>
-          <div class="ocrRow">
-            <input id="imageFile" type="file" accept="image/*" multiple style="flex:1">
-            <button class="btn ocr" id="btnOcr" type="button">🚀 一键 OCR 智能识别</button>
+        <div class="sm:col-span-3 space-y-2">
+          <label class="block text-xs font-semibold text-slate-600">上传截图或剪贴板粘贴 (Ctrl+V)</label>
+          <div class="flex items-center gap-3">
+            <input id="imageFile" type="file" accept="image/*" multiple class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all cursor-pointer">
+            <button class="btn btn-ocr whitespace-nowrap text-xs py-2 px-4" id="btnOcr" type="button">🚀 一键 OCR 智能识别</button>
           </div>
           <div class="ocrProgress" id="ocrProgress"><div class="ocrProgressBar" id="ocrProgressBar"></div></div>
-          <div class="ocrStatus" id="ocrStatus">选择截图后点击“一键 OCR 智能识别”或按 Ctrl+V 粘贴截图，将自动解析提取道具与价格。</div>
+          <div class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/70" id="ocrStatus">选择截图后点击“一键 OCR 智能识别”或按 Ctrl+V 粘贴截图，将自动解析提取道具与价格。</div>
           <img class="preview" id="imagePreview" alt="截图预览">
         </div>
-        <div class="wide">
-          <label>批量粘贴数据 / OCR 提取结果</label>
-          <textarea id="importText" placeholder="每行一条：道具名称,本期价格,历史高价,历史低价&#10;例如：月华遮蔽者,625,706,610&#10;宿命天定者/爱命于天者,198,297,149"></textarea>
-          <div class="hint">价格单位为“万金币”。支持自动识别“万/亿/小数”以及逗号、制表符或多个空格分隔。图片名称或 OCR 状态将记录在数据来源字段中。</div>
+        <div class="sm:col-span-3 space-y-1.5">
+          <label class="block text-xs font-semibold text-slate-600">批量粘贴数据 / OCR 提取结果</label>
+          <textarea id="importText" placeholder="每行一条：道具名称,本期价格,历史高价,历史低价&#10;例如：月华遮蔽者,625,706,610&#10;宿命天定者/爱命于天者,198,297,149" class="w-full h-32 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed"></textarea>
+          <p class="text-xs text-slate-400">价格单位为“万金币”。支持自动识别“万/亿/小数”以及逗号、制表符或多个空格分隔。</p>
         </div>
       </div>
     </div>
-    <div class="modalFoot">
-      <button class="btn" data-close="importModal">取消</button>
-      <button class="btn primary" id="importSubmit">导入数据</button>
+    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+      <button class="btn btn-secondary" data-close="importModal">取消</button>
+      <button class="btn btn-primary" id="importSubmit">确认导入数据</button>
     </div>
   </dialog>
 
+  <!-- 弹窗 2：新增价格条目对话框 -->
   <dialog id="addModal">
-    <div class="modalHead">
-      <h2>新增价格条目</h2>
-      <button class="iconBtn" data-close="addModal" title="关闭">×</button>
+    <div class="bg-slate-900 text-white px-6 py-5 flex justify-between items-center border-b border-slate-800">
+      <h2 class="text-lg font-bold flex items-center gap-2">➕ 新增价格条目</h2>
+      <button class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center text-lg transition-all" data-close="addModal" title="关闭">×</button>
     </div>
-    <div class="modalBody">
-      <div class="formGrid">
+    <div class="p-6 bg-white space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label>礼包类型</label>
-          <select id="addSeason">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">礼包类型</label>
+          <select id="addSeason" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             <option>春节</option>
             <option selected>耕耘</option>
             <option>夏日</option>
@@ -128,67 +147,68 @@
           </select>
         </div>
         <div>
-          <label>年份</label>
-          <input id="addYear" type="number" value="2026">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">年份</label>
+          <input id="addYear" type="number" value="2026" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label>统计日期</label>
-          <input id="addDate" type="date" value="2026-06-18">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">统计日期</label>
+          <input id="addDate" type="date" value="2026-06-18" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
-        <div class="wide">
-          <label>道具名称</label>
-          <input id="addName" placeholder="例如：+12装备增幅券">
-        </div>
-        <div>
-          <label>本期价格（万）</label>
-          <input id="addCurrent" type="number" step="0.0001" min="0">
+        <div class="sm:col-span-3">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">道具名称</label>
+          <input id="addName" placeholder="例如：+12装备增幅券" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label>历史高价（万）</label>
-          <input id="addHigh" type="number" step="0.0001" min="0">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">本期价格 (万)</label>
+          <input id="addCurrent" type="number" step="0.0001" min="0" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
         <div>
-          <label>历史低价（万）</label>
-          <input id="addLow" type="number" step="0.0001" min="0">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">历史高价 (万)</label>
+          <input id="addHigh" type="number" step="0.0001" min="0" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">历史低价 (万)</label>
+          <input id="addLow" type="number" step="0.0001" min="0" class="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
         </div>
       </div>
     </div>
-    <div class="modalFoot">
-      <button class="btn" data-close="addModal">取消</button>
-      <button class="btn primary" id="addSubmit">保存条目</button>
+    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+      <button class="btn btn-secondary" data-close="addModal">取消</button>
+      <button class="btn btn-primary" id="addSubmit">保存条目</button>
     </div>
   </dialog>
 
-  <dialog id="categoryModal" style="width: min(940px, calc(100vw - 32px));">
-    <div class="modalHead">
-      <h2>⚙️ 同类产物跨年映射规则配置</h2>
-      <button class="iconBtn" data-close="categoryModal" title="关闭">×</button>
+  <!-- 弹窗 3：同类产物映射配置对话框 -->
+  <dialog id="categoryModal" class="!w-[min(940px,calc(100vw-32px))]">
+    <div class="bg-slate-900 text-white px-6 py-5 flex justify-between items-center border-b border-slate-800">
+      <h2 class="text-lg font-bold flex items-center gap-2">⚙️ 同类产物跨年映射规则配置</h2>
+      <button class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center text-lg transition-all" data-close="categoryModal" title="关闭">×</button>
     </div>
-    <div class="modalBody">
-      <div class="hint" style="margin-bottom:14px; font-size:13px; color:var(--ink);">
-        在玩家【跨年同类对比】视图中，系统通过以下规则将不同年份的节日道具归类为同一个分析项目。您可以自由增删改映射关系（多个匹配关键字请用英文逗号 <code>,</code> 分隔）。
-      </div>
-      <div style="max-height: 420px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; background:#fff;">
-        <table style="min-width: 100%;">
-          <thead style="position:sticky; top:0; background:#eef5f8; z-index:2;">
+    <div class="p-6 bg-white space-y-3">
+      <p class="text-xs text-slate-500 bg-indigo-50/60 text-indigo-900 p-3.5 rounded-xl border border-indigo-100">
+        在【跨年同类对比】页面中，系统通过以下规则将不同年份的节日道具归类为同一个分析项目。您可以自由增删改映射关系（多个匹配关键字请用英文逗号 <code>,</code> 分隔）。
+      </p>
+      <div class="max-h-[420px] overflow-y-auto border border-slate-200 rounded-xl bg-white shadow-2xs">
+        <table class="w-full text-left text-xs">
+          <thead class="sticky top-0 bg-slate-100 text-slate-700 font-bold z-10 border-b border-slate-200">
             <tr>
-              <th style="width:120px;">适用礼包</th>
-              <th style="width:220px;">同类归类名称</th>
-              <th>匹配关键字（逗号分隔）</th>
-              <th style="width:80px; text-align:center;">操作</th>
+              <th class="py-3 px-4 w-32">适用礼包</th>
+              <th class="py-3 px-4 w-52">同类归类名称</th>
+              <th class="py-3 px-4">匹配关键字（逗号分隔）</th>
+              <th class="py-3 px-4 w-20 text-center">操作</th>
             </tr>
           </thead>
-          <tbody id="categoryRulesBody"></tbody>
+          <tbody id="categoryTableBody" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
-      <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center;">
-        <button class="btn primary" id="addCategoryRuleBtn" type="button">+ 新增映射规则</button>
-        <button class="btn outline" id="resetCategoryRulesBtn" type="button" style="color:var(--navy); border-color:#bfcbd5;">恢复默认映射表</button>
+      <div class="flex justify-between items-center pt-2">
+        <button class="btn btn-secondary text-xs" id="addCategoryRuleBtn">➕ 新增映射规则</button>
+        <span class="text-xs text-slate-400">修改后请点击下方保存按钮应用规则</span>
       </div>
     </div>
-    <div class="modalFoot">
-      <button class="btn" data-close="categoryModal">取消</button>
-      <button class="btn primary" id="saveCategoryRulesBtn">保存映射配置</button>
+    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+      <button class="btn btn-secondary" data-close="categoryModal">取消</button>
+      <button class="btn btn-primary" id="saveCategoryRulesBtn">保存映射配置</button>
     </div>
   </dialog>
 
