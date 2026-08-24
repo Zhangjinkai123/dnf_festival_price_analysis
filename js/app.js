@@ -111,14 +111,14 @@
         const list = JSON.parse(raw);
         if (Array.isArray(list) && list.length > 0) return list;
       }
-    } catch (e) {}
+    } catch (e) { }
     return JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
   }
 
   function saveCategoryMap() {
     try {
       localStorage.setItem(MAP_KEY, JSON.stringify(categoryMap));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   let categoryMap = loadCategoryMap();
@@ -150,7 +150,7 @@
     const yearEl = $('#year');
     if (!yearEl) return;
     const current = yearEl.value;
-    const years = [...new Set((items || []).map(x => x.year).filter(Boolean))].sort((a,b)=>a-b);
+    const years = [...new Set((items || []).map(x => x.year).filter(Boolean))].sort((a, b) => a - b);
     yearEl.innerHTML = '<option value="all">全部年份</option>' + years.map(y => `<option value="${y}">${y}年</option>`).join('');
     yearEl.value = (current && (current === 'all' || years.includes(+current))) ? current : 'all';
   }
@@ -188,9 +188,9 @@
         <td class="py-3 px-4 text-right font-mono font-bold text-rose-600">${fmt(x.high)}</td>
         <td class="py-3 px-4 text-right font-mono font-bold text-emerald-600">${fmt(x.low)}</td>
         <td class="py-3 px-4 text-right font-mono">
-          ${rangeIncrease > 0 
-            ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100">+${rangeIncreaseText}</span>` 
-            : `<span class="text-slate-400">${rangeIncreaseText}</span>`}
+          ${rangeIncrease > 0
+          ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100">+${rangeIncreaseText}</span>`
+          : `<span class="text-slate-400">${rangeIncreaseText}</span>`}
         </td>
       </tr>`;
     }).join('');
@@ -333,12 +333,25 @@
     }
   }
 
+  let noticeTimer = null;
   function notice(text) {
     const el = $('#notice');
     if (!el) return;
+
+    // 若当前有打开的原生 dialog，挂载至 dialog 内部使其位于浏览器的 Top Layer 顶层
+    const activeModal = document.querySelector('dialog[open]');
+    if (activeModal && el.parentElement !== activeModal) {
+      activeModal.appendChild(el);
+    } else if (!activeModal && el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+
     el.textContent = text;
     el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2400);
+    if (noticeTimer) clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => {
+      el.classList.remove('show');
+    }, 2800);
   }
 
   function openModal(id) {
@@ -346,28 +359,16 @@
     if (el) el.showModal();
   }
 
-  // OCR Worker 资源清理释放辅助
-  async function terminateOCRWorker() {
-    if (ocrWorker) {
-      try {
-        await ocrWorker.terminate();
-      } catch (e) {
-        console.warn('OCR worker terminate warning:', e);
-      }
-      ocrWorker = null;
-    }
-  }
-
   // 事件监听注册
   document.querySelectorAll('[data-close]').forEach(x => x.onclick = () => {
     const modalId = x.dataset.close;
     const modal = $('#' + modalId);
     if (modal) modal.close();
-    if (modalId === 'importModal') {
-      terminateOCRWorker();
+    const noticeEl = $('#notice');
+    if (noticeEl && noticeEl.parentElement !== document.body) {
+      document.body.appendChild(noticeEl);
     }
   });
-  if ($('#openImport')) $('#openImport').onclick = () => openModal('importModal');
   if ($('#openAdd')) $('#openAdd').onclick = () => openModal('addModal');
 
   ['season', 'year', 'search'].forEach(id => {
@@ -408,10 +409,10 @@
 
       const allNames = [...new Set((items || []).map(x => x && x.name).filter(Boolean))];
       const categoryLabels = [...new Set((categoryMap || []).map(c => c && c.label).filter(Boolean))];
-      
+
       const matchedNames = allNames.filter(n => n.toLowerCase().includes(q));
       const matchedCats = categoryLabels.filter(c => c.toLowerCase().includes(q) && !matchedNames.includes(c));
-      
+
       const matches = [
         ...matchedCats.map(c => ({ name: c, type: '分类归类' })),
         ...matchedNames.map(n => ({ name: n, type: '道具' }))
@@ -505,227 +506,6 @@
     };
   }
 
-  // 图像选择与预览
-  let activePreviewUrl = null;
-  if ($('#imageFile')) {
-    $('#imageFile').onchange = e => {
-      const f = e.target.files[0];
-      const img = $('#imagePreview');
-      if (activePreviewUrl) {
-        URL.revokeObjectURL(activePreviewUrl);
-        activePreviewUrl = null;
-      }
-      if (!f || !img) {
-        if (img) img.style.display = 'none';
-        return;
-      }
-      activePreviewUrl = URL.createObjectURL(f);
-      img.src = activePreviewUrl;
-      img.style.display = 'block';
-    };
-  }
-
-  // 价格解析算法
-  function parsePrice(value) {
-    if (value === null || value === undefined) return NaN;
-    let s = String(value).trim().replace(/[，,\s]/g, '');
-    if (!s) return NaN;
-
-    if (s.includes('亿')) {
-      const m = s.match(/^(\d+(?:\.\d+)?)亿(?:(\d+(?:\.\d+)?)万?)?$/);
-      if (m) return Number(m[1]) * 10000 + Number(m[2] || 0);
-    }
-
-    if (s.includes('万')) {
-      const w = s.match(/^(\d+)万(\d+)?$/);
-      if (w) {
-        const main = Number(w[1]);
-        const decStr = w[2];
-        if (!decStr || Number(decStr) === 0) return main;
-        const dec = Number(decStr) / Math.pow(10, decStr.length);
-        return Number((main + dec).toFixed(4));
-      }
-      return Number(s.replace('万', ''));
-    }
-
-    return Number(s);
-  }
-
-  // Tesseract.js OCR 智能识别
-  let ocrWorker = null;
-
-  async function runOCR(imageSources) {
-    if (typeof Tesseract === 'undefined') {
-      notice('Tesseract.js OCR 引擎尚未加载完成，请检查网络');
-      return;
-    }
-
-    const progressBox = $('#ocrProgress');
-    const progressBar = $('#ocrProgressBar');
-    const statusBox = $('#ocrStatus');
-    const btnOcr = $('#btnOcr');
-
-    if (progressBox) progressBox.style.display = 'block';
-    if (progressBar) progressBar.style.width = '5%';
-    if (btnOcr) { btnOcr.disabled = true; btnOcr.textContent = '⏳ 识别中...'; }
-
-    try {
-      if (!ocrWorker) {
-        if (statusBox) statusBox.textContent = '正在初始化 OCR 识别引擎中...';
-        ocrWorker = await Tesseract.createWorker('chi_sim+eng');
-      }
-
-      let combinedText = '';
-
-      for (let i = 0; i < imageSources.length; i++) {
-        const src = imageSources[i];
-        const fileName = (src instanceof File) ? src.name : `剪贴板截图_${i+1}`;
-        if (statusBox) statusBox.textContent = `正在识别第 (${i+1}/${imageSources.length}) 张图片 [${fileName}]...`;
-
-        const ret = await ocrWorker.recognize(src);
-        if (progressBar) progressBar.style.width = `${Math.round(((i + 1) / imageSources.length) * 100)}%`;
-
-        if (ret && ret.data && ret.data.text) {
-          const rawLines = ret.data.text.split('\n');
-          rawLines.forEach(line => {
-            const trimmed = line.trim();
-            if (!trimmed) return;
-            const priceMatches = trimmed.match(/(\d+(?:\.\d+)?)\s*(万|亿)?/g);
-            if (priceMatches && priceMatches.length > 0) {
-              const namePart = trimmed.replace(/(\d+(?:\.\d+)?)\s*(万|亿)?/g, '').trim().replace(/^[,，\s]+|[,，\s]+$/g, '');
-              const cleanName = namePart || 'OCR未识别名称道具';
-              const parsedPrices = priceMatches.map(p => parsePrice(p)).filter(n => !isNaN(n));
-              if (parsedPrices.length > 0) {
-                combinedText += `${cleanName},${parsedPrices.join(',')}\n`;
-              }
-            }
-          });
-        }
-      }
-
-      const textArea = $('#importText');
-      if (textArea) {
-        const existing = textArea.value.trim();
-        textArea.value = existing ? existing + '\n' + combinedText.trim() : combinedText.trim();
-      }
-
-      if (statusBox) statusBox.textContent = `✅ OCR 识别完成！已解析提取文本放入下方框内，请检查确认后点击“导入数据”。`;
-      notice('OCR 截图文本自动解析提取成功！');
-    } catch (err) {
-      console.error('OCR Error:', err);
-      if (statusBox) statusBox.textContent = `❌ OCR 识别异常: ${err.message || '识别超时，请直接手动在下方文本框编辑录入'}`;
-      notice('OCR 识别失败，请手动在下方框内录入数据');
-    } finally {
-      if (btnOcr) { btnOcr.disabled = false; btnOcr.textContent = '🚀 一键 OCR 智能识别'; }
-      setTimeout(() => { if (progressBox) progressBox.style.display = 'none'; }, 2000);
-    }
-  }
-
-  if ($('#btnOcr')) {
-    $('#btnOcr').onclick = () => {
-      const fileInput = $('#imageFile');
-      if (!fileInput || !fileInput.files || !fileInput.files.length) {
-        return notice('请先选择截图图片文件或按 Ctrl+V 粘贴图片！');
-      }
-      runOCR(Array.from(fileInput.files));
-    };
-  }
-
-  // 剪贴板粘贴截图识别支持
-  document.addEventListener('paste', e => {
-    const modal = $('#importModal');
-    if (!modal || !modal.open) return;
-
-    const clipboardItems = e.clipboardData && e.clipboardData.items;
-    if (!clipboardItems) return;
-
-    const imageFiles = [];
-    for (let i = 0; i < clipboardItems.length; i++) {
-      const item = clipboardItems[i];
-      if (item.type.indexOf('image') !== -1) {
-        const blob = item.getAsFile();
-        if (blob) imageFiles.push(blob);
-      }
-    }
-
-    if (imageFiles.length > 0) {
-      e.preventDefault();
-      const img = $('#imagePreview');
-      if (activePreviewUrl) URL.revokeObjectURL(activePreviewUrl);
-      activePreviewUrl = URL.createObjectURL(imageFiles[0]);
-      if (img) {
-        img.src = activePreviewUrl;
-        img.style.display = 'block';
-      }
-      notice(`已获取剪贴板截图 (${imageFiles.length} 张)，开始自动识别...`);
-      runOCR(imageFiles);
-    }
-  });
-
-  // 批量数据导入提交
-  if ($('#importSubmit')) {
-    $('#importSubmit').onclick = () => {
-      const rawText = $('#importText').value.trim();
-      if (!rawText) return notice('请在框内输入或粘贴要导入的数据');
-
-      const season = $('#importSeason').value;
-      const year = +$('#importYear').value;
-      const date = $('#importDate').value;
-
-      const lines = rawText.split('\n').map(x => x.trim()).filter(Boolean);
-      const addItems = [];
-
-      for (const line of lines) {
-        const parts = line.split(/[,，\t\s]+/).filter(Boolean);
-        if (parts.length >= 2) {
-          const name = parts[0];
-          const nums = parts.slice(1).map(x => parsePrice(x)).filter(n => !isNaN(n));
-
-          let current = nums[0] !== undefined ? nums[0] : null;
-          let high = nums[1] !== undefined ? nums[1] : current;
-          let low = nums[2] !== undefined ? nums[2] : current;
-
-          if (current !== null && high !== null && low !== null) {
-            const actualMin = Math.min(current, high, low);
-            const actualMax = Math.max(current, high, low);
-            low = actualMin;
-            high = actualMax;
-          }
-
-          let source = '批量导入';
-          const fileInput = $('#imageFile');
-          if (fileInput && fileInput.files && fileInput.files.length > 0) {
-            source = `截图导入(${fileInput.files[0].name})`;
-          }
-
-          addItems.push({
-            id: generateUUID(),
-            year,
-            season,
-            date,
-            name,
-            current,
-            high,
-            low,
-            source
-          });
-        }
-      }
-
-      if (!addItems.length) return notice('未识别到有效行，请检查分隔格式');
-
-      items.push(...addItems);
-      save();
-      $('#importModal').close();
-      terminateOCRWorker();
-      $('#importText').value = '';
-      $('#imageFile').value = '';
-      if ($('#imagePreview')) $('#imagePreview').style.display = 'none';
-      render();
-      notice(`已成功导入 ${addItems.length} 条物价数据`);
-    };
-  }
-
   // 手动新增单条数据
   if ($('#addSubmit')) {
     $('#addSubmit').onclick = () => {
@@ -770,11 +550,11 @@
       return `<tr>
         <td class="py-2.5 px-3">
           <select class="cat-season-select w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-            <option ${r.season==='通用'?'selected':''}>通用</option>
-            <option ${r.season==='春节'?'selected':''}>春节</option>
-            <option ${r.season==='耕耘'?'selected':''}>耕耘</option>
-            <option ${r.season==='夏日'?'selected':''}>夏日</option>
-            <option ${r.season==='金秋'?'selected':''}>金秋</option>
+            <option ${r.season === '通用' ? 'selected' : ''}>通用</option>
+            <option ${r.season === '春节' ? 'selected' : ''}>春节</option>
+            <option ${r.season === '耕耘' ? 'selected' : ''}>耕耘</option>
+            <option ${r.season === '夏日' ? 'selected' : ''}>夏日</option>
+            <option ${r.season === '金秋' ? 'selected' : ''}>金秋</option>
           </select>
         </td>
         <td class="py-2.5 px-3">

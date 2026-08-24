@@ -183,46 +183,38 @@ dialog::backdrop {
   backdrop-filter: blur(8px);
 }
 
-/* OCR 进度条微动画 */
-.ocrProgress {
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 9999px;
-  overflow: hidden;
-  display: none;
-  margin-top: 10px;
-}
-.ocrProgressBar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #6366f1, #14b8a6);
-  border-radius: 9999px;
-  transition: width 0.3s ease;
-}
 
-/* Toast 柔和阴影通知 */
+/* Toast 柔和阴影通知（支持普通页面与原生 dialog 顶层） */
 .notice {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(15, 23, 42, 0.95);
   color: #ffffff;
-  padding: 12px 20px;
+  padding: 12px 22px;
   border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.4), 0 10px 15px -6px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
   opacity: 0;
   transform: translateY(12px) scale(0.95);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
-  z-index: 9999;
+  z-index: 2147483647;
   font-weight: 500;
   font-size: 0.875rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: min(520px, calc(100vw - 32px));
+  word-break: break-word;
 }
 .notice.show {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+dialog .notice {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
 }
 
 /* 搜索下拉推荐项美化与过长文字防护 */
