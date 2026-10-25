@@ -1,0 +1,13 @@
+{
+  "name": "dnf-festival-price-analysis",
+  "private": true,
+  "version": "1.0.0",
+  "description": "毒奶粉节日礼包物价记录档案与历史分析系统（纯静态多页面站点，本文件仅用于样式构建工具链）",
+  "scripts": {
+    "build:css": "tailwindcss -i src/input.css -o css/tailwind.build.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}

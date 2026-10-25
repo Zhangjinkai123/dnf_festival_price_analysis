@@ -1,0 +1,15 @@
+/**
+ * Tailwind CSS v4 构建入口（预编译生成 css/tailwind.build.css）
+ *
+ * 构建命令（在项目根目录运行）：
+ *   npm run build:css
+ *   （等价于 tailwindcss -i src/input.css -o css/tailwind.build.css --minify）
+ *
+ * 说明：除自动扫描项目文件外，下方 @source 显式声明了使用 Tailwind
+ * 工具类的文件。若新增页面，请把对应文件加入 @source 并重新构建。
+ */
+@import "tailwindcss";
+
+@source "../index.html";
+@source "../compare.html";
+@source "../js/app.js";

@@ -7,6 +7,23 @@
   const MAP_KEY = 'dnf-festival-category-map-v2';
   const $ = selector => document.querySelector(selector);
 
+  // 访问模式:auto = 本地(file:// / localhost)为管理员,远程访问为游客;
+  // 部署到服务器供他人访问时,游客端自动移除管理按钮与弹窗(防止误操作/视图被污染)。
+  // 游客的操作本就仅写入其自身浏览器 localStorage,服务器数据文件任何访客都无法修改。
+  // 需在远程环境解锁管理功能时,可强制指定 'admin';反之可强制 'guest'。
+  const ACCESS_MODE = 'auto';
+  const IS_OWNER = ACCESS_MODE === 'admin' ? true
+    : ACCESS_MODE === 'guest' ? false
+      : (location.protocol === 'file:' || ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(location.hostname));
+
+  if (!IS_OWNER) {
+    // 游客模式:移除管理按钮与对应弹窗;后续事件绑定因元素不存在而全部自动跳过
+    ['openCategoryModal', 'exportCsv', 'exportJson', 'openAdd', 'addModal', 'categoryModal'].forEach(id => {
+      const el = $('#' + id);
+      if (el) el.remove();
+    });
+  }
+
   function generateUUID() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -14,7 +31,27 @@
     return 'id-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
   }
 
-  const fmt = n => (n === null || n === undefined || isNaN(n)) ? '--' : Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+  // 千分位用细空格(U+2009)代替逗号,避免与小数点混淆
+  const fmt = n => (n === null || n === undefined || isNaN(n)) ? '--' : Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 4 }).replace(/,/g, '\u2009');
+
+  // 价格展示:≥1亿(10000万)自动转亿,其余以万显示;数据存储与导出仍统一为万
+  function priceParts(n) {
+    if (n === null || n === undefined || isNaN(n)) return { text: '--', unit: '' };
+    const v = Number(n);
+    if (v >= 10000) return { text: fmt(v / 10000), unit: '亿' };
+    return { text: fmt(v), unit: '万' };
+  }
+
+  const priceHtml = n => {
+    const p = priceParts(n);
+    if (!p.unit) return p.text;
+    return `${p.text} <span class="text-xs text-slate-400 font-normal">${p.unit}</span>`;
+  };
+
+  const priceText = n => {
+    const p = priceParts(n);
+    return p.unit ? `${p.text} ${p.unit}` : p.text;
+  };
 
   // ---------------- 数据智能加载器 (JSON 优先 + JS 降级) ----------------
   let seedItems = [];
@@ -89,10 +126,12 @@
     const savedList = savedRaw ? JSON.parse(savedRaw) : null;
     const validSaved = sanitizeItems(savedList);
 
-    const known = new Set(validSaved.map(x => `${x.year}|${x.season}|${x.date}|${x.name}`));
-    const missing = seedItems.filter(x => !known.has(`${x.year}|${x.season}|${x.date}|${x.name}`));
+    // 种子数据为基准:同键条目一律以最新种子为准,确保数据修正与批量导入能同步到浏览器;
+    // localStorage 仅保留种子之外的条目(如手工新增),避免旧缓存覆盖修正后的数值
+    const seedKeys = new Set(seedItems.map(x => `${x.year}|${x.season}|${x.date}|${x.name}`));
+    const userExtras = validSaved.filter(x => !seedKeys.has(`${x.year}|${x.season}|${x.date}|${x.name}`));
 
-    items = [...validSaved, ...missing];
+    items = [...seedItems, ...userExtras];
     save();
   } catch (e) {
     items = [...seedItems];
@@ -105,14 +144,21 @@
 
   // ---------------- 产物映射字典管理 ----------------
   function loadCategoryMap() {
+    let saved = null;
     try {
       const raw = localStorage.getItem(MAP_KEY);
       if (raw) {
         const list = JSON.parse(raw);
-        if (Array.isArray(list) && list.length > 0) return list;
+        if (Array.isArray(list) && list.length > 0) saved = list;
       }
     } catch (e) { }
-    return JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
+    if (!saved) return JSON.parse(JSON.stringify(DEFAULT_CATEGORY_MAP));
+    // 用户保存过自定义映射:以自定义为基础,合并种子中新增的规则(如新系列导入的映射),
+    // 保证官方规则更新能进入已保存过映射的浏览器;若官方修改了既有规则的关键字,
+    // 需将 MAP_KEY 版本号 +1 使本地旧映射整体失效(见 .agents/AGENTS.md)
+    const savedLabels = new Set(saved.map(c => c && c.label).filter(Boolean));
+    const seedAdditions = DEFAULT_CATEGORY_MAP.filter(c => c && c.label && !savedLabels.has(c.label));
+    return [...saved, ...JSON.parse(JSON.stringify(seedAdditions))];
   }
 
   function saveCategoryMap() {
@@ -127,7 +173,9 @@
     const el = $('#statBadge');
     if (!el) return;
     const total = (items || []).length;
-    const filtered = filteredRawItems().length;
+    const pageMode = (document.body && document.body.dataset.page) ? document.body.dataset.page : 'table';
+    // 对比页与 renderGroupView 同口径:搜索命中道具名或归类名均计入
+    const filtered = (pageMode === 'group') ? computeGroupData().visibleCount : filteredRawItems().length;
     el.textContent = `全库收录 ${total} 条数据 | 筛选出 ${filtered} 条`;
   }
 
@@ -184,9 +232,9 @@
         <td class="py-3 px-4"><span class="badge ${seasonClass(x.season || '')}">${x.season || '--'}</span></td>
         <td class="py-3 px-4 text-xs text-slate-500 font-mono">${x.date || '--'}</td>
         <td class="py-3 px-4 font-semibold text-slate-800">${x.name || '--'}</td>
-        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900">${fmt(x.current)}</td>
-        <td class="py-3 px-4 text-right font-mono font-bold text-rose-600">${fmt(x.high)}</td>
-        <td class="py-3 px-4 text-right font-mono font-bold text-emerald-600">${fmt(x.low)}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-slate-900">${priceHtml(x.current)}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-rose-600">${priceHtml(x.high)}</td>
+        <td class="py-3 px-4 text-right font-mono font-bold text-emerald-600">${priceHtml(x.low)}</td>
         <td class="py-3 px-4 text-right font-mono">
           ${rangeIncrease > 0
           ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100">+${rangeIncreaseText}</span>`
@@ -196,8 +244,26 @@
     }).join('');
   }
 
-  // 渲染跨年同类对比视图
-  function renderGroupView() {
+  // 跨年同类归组计算:返回分组 Map 与当前筛选下可见条数(供对比页渲染与统计徽章共用同一口径)
+  function matchCategoryFor(item) {
+    let matchedCat = null;
+    let maxKwLen = -1;
+    categoryMap.forEach(c => {
+      if (c.season === '通用' || c.season === item.season) {
+        (c.keywords || []).forEach(k => {
+          if (item.name.includes(k) || k.includes(item.name)) {
+            if (k.length > maxKwLen) {
+              maxKwLen = k.length;
+              matchedCat = c;
+            }
+          }
+        });
+      }
+    });
+    return matchedCat;
+  }
+
+  function computeGroupData() {
     const sFilter = $('#season') ? $('#season').value : 'all';
     const yFilter = $('#year') ? $('#year').value : 'all';
     const qInput = $('#search') ? $('#search').value : '';
@@ -210,24 +276,10 @@
     );
 
     const groups = new Map();
+    let visibleCount = 0;
 
     matched.forEach(item => {
-      let matchedCat = null;
-      let maxKwLen = -1;
-
-      categoryMap.forEach(c => {
-        if (c.season === '通用' || c.season === item.season) {
-          (c.keywords || []).forEach(k => {
-            if (item.name.includes(k) || k.includes(item.name)) {
-              if (k.length > maxKwLen) {
-                maxKwLen = k.length;
-                matchedCat = c;
-              }
-            }
-          });
-        }
-      });
-
+      const matchedCat = matchCategoryFor(item);
       const groupLabel = matchedCat ? matchedCat.label : item.name;
 
       if (qFilter) {
@@ -235,6 +287,7 @@
         const matchLabel = groupLabel.toLowerCase().includes(qFilter);
         if (!matchName && !matchLabel) return;
       }
+      visibleCount++;
 
       if (!groups.has(groupLabel)) {
         groups.set(groupLabel, {
@@ -245,6 +298,13 @@
       }
       groups.get(groupLabel).items.push(item);
     });
+
+    return { groups, visibleCount };
+  }
+
+  // 渲染跨年同类对比视图
+  function renderGroupView() {
+    const { groups } = computeGroupData();
 
     const container = $('#groupView');
     if (!container) return;
@@ -275,6 +335,7 @@
 
       groupData.items.forEach(it => {
         const priceDisplay = (it.low !== null && it.low !== undefined && !isNaN(it.low) && Number(it.low) > 0) ? it.low : it.current;
+        const pp = priceParts(priceDisplay);
 
         html += `
           <div class="grid grid-cols-12 gap-3 items-center px-6 py-3.5 hover:bg-slate-50/80 transition-colors">
@@ -288,8 +349,8 @@
               ${it.name}
             </div>
             <div class="col-span-3 sm:col-span-3 text-right">
-              <span class="text-base font-mono font-bold text-indigo-600" title="历史最低价: ${fmt(priceDisplay)}万 (统计日期: ${it.date})">
-                ${fmt(priceDisplay)} <span class="text-xs text-slate-500 font-normal">万</span>
+              <span class="text-base font-mono font-bold text-indigo-600" title="历史最低价: ${priceText(priceDisplay)} (统计日期: ${it.date})">
+                ${pp.text} <span class="text-xs text-slate-500 font-normal">${pp.unit}</span>
               </span>
             </div>
           </div>
@@ -313,6 +374,7 @@
       }
 
       updateYears();
+      syncCxButtons();
       updateStatBadge();
 
       const pageMode = (document.body && document.body.dataset.page) ? document.body.dataset.page : 'table';
@@ -370,6 +432,11 @@
     }
   });
   if ($('#openAdd')) $('#openAdd').onclick = () => openModal('addModal');
+  // 新增弹窗统计日期默认当天
+  if ($('#addDate')) {
+    const now = new Date();
+    $('#addDate').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
 
   ['season', 'year', 'search'].forEach(id => {
     const el = $('#' + id);
@@ -493,6 +560,151 @@
 
   initSearchSuggest();
 
+  // ---------------- 原生下拉框增强:自定义弹出列表 ----------------
+  // 原生 select 展开后的 option 弹窗是浏览器/OS 原生控件,CSS 无法美化;
+  // 此处以隐藏的原生 select 作为数据源与读写载体,用同外观按钮 + 自定义弹层替代展开交互,
+  // 现有逻辑(筛选、映射表读写 .value)完全不受影响。
+  let cxOpen = null; // { sel, btn, listbox, items, activeIndex }
+
+  function cxFindBtn(sel) {
+    return (sel.nextElementSibling && sel.nextElementSibling.classList.contains('cxBtn')) ? sel.nextElementSibling : null;
+  }
+
+  function enhanceSelect(sel) {
+    if (!sel || sel.dataset.cxEnhanced) return;
+    sel.dataset.cxEnhanced = '1';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = sel.className.split(/\s+/).filter(c => c && c !== 'cat-season-select').join(' ') + ' cxBtn';
+    btn.setAttribute('aria-haspopup', 'listbox');
+    btn.setAttribute('aria-expanded', 'false');
+    // 关联的原生 label 无法作用于替代按钮,复制其文本作为可访问名称
+    const labelEl = sel.id ? document.querySelector(`label[for="${sel.id}"]`) : null;
+    if (labelEl) btn.setAttribute('aria-label', labelEl.textContent.trim());
+    sel.insertAdjacentElement('afterend', btn);
+    sel.classList.add('cxNative');
+
+    const sync = () => {
+      const opt = sel.options[sel.selectedIndex];
+      btn.textContent = opt ? opt.textContent.trim() : '';
+    };
+    btn._cxSync = sync;
+    sync();
+    sel.addEventListener('change', sync);
+
+    btn.addEventListener('click', () => {
+      if (cxOpen && cxOpen.btn === btn) { cxClose(); return; }
+      cxOpenListbox(sel, btn);
+    });
+
+    btn.addEventListener('keydown', e => {
+      if (!cxOpen || cxOpen.btn !== btn) {
+        if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          cxOpenListbox(sel, btn);
+        }
+        return;
+      }
+      const count = cxOpen.items.length;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        cxHighlight((cxOpen.activeIndex + 1) % count);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        cxHighlight((cxOpen.activeIndex - 1 + count) % count);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        cxPick(cxOpen.activeIndex);
+      } else if (e.key === 'Escape' || e.key === 'Tab') {
+        cxClose();
+      }
+    });
+  }
+
+  function enhanceAllSelects(root) {
+    (root || document).querySelectorAll('select').forEach(enhanceSelect);
+  }
+
+  function syncCxButtons() {
+    document.querySelectorAll('select.cxNative').forEach(sel => {
+      const btn = cxFindBtn(sel);
+      if (btn && btn._cxSync) btn._cxSync();
+    });
+  }
+
+  function cxClose() {
+    if (!cxOpen) return;
+    cxOpen.btn.setAttribute('aria-expanded', 'false');
+    cxOpen.btn.classList.remove('open');
+    cxOpen.listbox.remove();
+    cxOpen = null;
+  }
+
+  function cxHighlight(idx) {
+    if (!cxOpen) return;
+    cxOpen.items.forEach((it, i) => it.classList.toggle('active', i === idx));
+    if (cxOpen.items[idx]) cxOpen.items[idx].scrollIntoView({ block: 'nearest' });
+    cxOpen.activeIndex = idx;
+  }
+
+  function cxPick(idx) {
+    if (!cxOpen) return;
+    const { sel, btn } = cxOpen;
+    const opt = sel.options[idx];
+    cxClose();
+    if (opt && sel.value !== opt.value) {
+      sel.value = opt.value;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    btn.focus();
+  }
+
+  function cxOpenListbox(sel, btn) {
+    cxClose();
+    const lb = document.createElement('div');
+    lb.className = 'cxListbox';
+    lb.setAttribute('role', 'listbox');
+
+    const items = [...sel.options].map((opt, i) => {
+      const item = document.createElement('div');
+      item.className = 'cxOption' + (i === sel.selectedIndex ? ' selected' : '');
+      item.setAttribute('role', 'option');
+      item.textContent = opt.textContent.trim();
+      item.addEventListener('mousedown', e => e.preventDefault());
+      item.addEventListener('click', () => cxPick(i));
+      lb.appendChild(item);
+      return item;
+    });
+
+    // 弹层挂载:select 位于 dialog 内时挂到 dialog(进入 Top Layer 覆盖遮罩),否则挂到 body
+    (sel.closest('dialog') || document.body).appendChild(lb);
+
+    const r = btn.getBoundingClientRect();
+    lb.style.minWidth = r.width + 'px';
+    const spaceBelow = window.innerHeight - r.bottom;
+    if (spaceBelow < 260 && r.top > spaceBelow) {
+      lb.style.top = Math.max(8, r.top - 6 - lb.offsetHeight) + 'px';
+    } else {
+      lb.style.top = (r.bottom + 6) + 'px';
+    }
+    lb.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 8 - lb.offsetWidth)) + 'px';
+
+    btn.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    cxOpen = { sel, btn, listbox: lb, items, activeIndex: sel.selectedIndex };
+  }
+
+  enhanceAllSelects();
+
+  document.addEventListener('click', e => {
+    if (!cxOpen) return;
+    if (cxOpen.listbox.contains(e.target) || cxOpen.btn.contains(e.target)) return;
+    cxClose();
+  });
+  window.addEventListener('scroll', e => { if (cxOpen && e.target !== cxOpen.listbox) cxClose(); }, true);
+  window.addEventListener('resize', cxClose);
+
   // 重置与恢复数据
   if ($('#reset')) {
     $('#reset').onclick = () => {
@@ -502,23 +714,31 @@
       items = [...seedItems];
       save();
       render();
-      notice('已成功重置筛选并恢复 180+ 条完整预置物价数据！');
+      notice(`已成功重置筛选并恢复 ${seedItems.length} 条完整预置物价数据！`);
     };
   }
 
   // 手动新增单条数据
   if ($('#addSubmit')) {
     $('#addSubmit').onclick = () => {
-      const name = $('#addName').value.trim();
-      const current = +$('#addCurrent').value;
-      const high = +$('#addHigh').value;
-      const low = +$('#addLow').value;
-      const year = +$('#addYear').value;
+      // 名称会拼入 innerHTML 渲染模板,剥离可能破坏结构的字符
+      const name = $('#addName').value.trim().replace(/[<>"]/g, '');
       const date = $('#addDate').value;
+      const year = +$('#addYear').value;
+      const curRaw = $('#addCurrent').value.trim();
+      const highRaw = $('#addHigh').value.trim();
+      const lowRaw = $('#addLow').value.trim();
 
-      if (!name || !date || ![current, high, low].every(Number.isFinite)) {
-        return notice('请完整填写道具名称和三项价格');
-      }
+      if (!name) return notice('请填写道具名称');
+      if (!date) return notice('请选择统计日期');
+      if (!Number.isFinite(year) || year <= 0) return notice('请填写有效年份');
+      if (curRaw === '' || highRaw === '' || lowRaw === '') return notice('请完整填写三项价格');
+
+      const current = +curRaw;
+      const high = +highRaw;
+      const low = +lowRaw;
+      if (![current, high, low].every(Number.isFinite)) return notice('价格需为有效数字');
+      if (low > high) return notice('历史低价不能高于历史高价');
 
       items.push({
         id: generateUUID(),
@@ -568,6 +788,7 @@
         </td>
       </tr>`;
     }).join('');
+    enhanceAllSelects(tbody);
   }
 
   if ($('#openCategoryModal')) {
@@ -603,6 +824,7 @@
         </td>
       `;
       tbody.appendChild(tr);
+      enhanceAllSelects(tr);
       tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
   }
@@ -699,8 +921,6 @@
       }
     };
   }
-
-  window.addEventListener('resize', render);
 
   // 初始化自愈启动
   try {

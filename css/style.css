@@ -1,8 +1,6 @@
-@import "tailwindcss";
-
 @layer base {
   :root {
-    --font-sans: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   body {
     font-family: var(--font-sans);
@@ -12,8 +10,9 @@
   }
 }
 
-/* 自定义下拉选择框 Select 现代美化 */
-select {
+/* 自定义下拉选择框(原生 select 与增强按钮 .cxBtn 共用外观) */
+select,
+.cxBtn {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -31,16 +30,37 @@ select {
   transition: all 0.2s ease;
 }
 
-select:hover {
+.cxBtn {
+  text-align: left;
+  font-family: inherit;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+select:hover,
+.cxBtn:hover {
   border-color: #cbd5e1;
   background-color: #ffffff;
 }
 
-select:focus {
+select:focus,
+.cxBtn:focus {
   outline: none;
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   background-color: #ffffff;
+}
+
+.cxBtn.open {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236366f1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 12l4-4 4 4'/%3e%3c/svg%3e");
+  border-color: #6366f1;
+  background-color: #ffffff;
+}
+
+.cxNative {
+  display: none !important;
 }
 
 select option {
@@ -49,6 +69,49 @@ select option {
   padding: 10px 14px;
   font-size: 14px;
   border-radius: 8px;
+}
+
+/* 自定义下拉列表弹层(替代无法用 CSS 美化的原生 option 弹窗) */
+.cxListbox {
+  position: fixed;
+  z-index: 2147483000;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem; /* rounded-2xl */
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  animation: cxDropIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cxOption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: #334155;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.cxOption:hover,
+.cxOption.active {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.cxOption.selected {
+  color: #4f46e5;
+  font-weight: 600;
+}
+.cxOption.selected::after {
+  content: '✓';
+  font-weight: 700;
+}
+@keyframes cxDropIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
 }
 
 /* 优雅滚动条设计 */
@@ -117,16 +180,6 @@ select option {
 .btn-outline:hover {
   background-color: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.35);
-}
-
-.btn-ocr {
-  background: linear-gradient(135deg, #4f46e5 0%, #0d9488 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
-}
-.btn-ocr:hover {
-  filter: brightness(1.08);
-  box-shadow: 0 6px 18px rgba(13, 148, 136, 0.4);
 }
 
 /* 标签 Badge 样式设计 */
