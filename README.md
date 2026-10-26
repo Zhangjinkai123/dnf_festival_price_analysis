@@ -65,3 +65,11 @@ dnf_festival_price_analysis/
 1. **运行首页**：双击直接在浏览器中打开 [index.html](file:///d:/self/work/aiproject/outputs/dnf_festival_price_analysis/index.html)。
 2. **切换对比页面**：点击筛选栏中的 **`🏷️ 跨年同类对比`** Tab 页签，即可跳转至 [compare.html](file:///d:/self/work/aiproject/outputs/dnf_festival_price_analysis/compare.html) 进行跨年横向对比。
 3. **内容联想搜索**：在搜索框中输入 `犬夜叉` 等词汇，即可触发智能下拉提示。
+
+---
+
+## 🌍 线上部署（华为云 ECS + Caddy）
+
+- **访问地址**：[http://113.44.64.151/dnf/](http://113.44.64.151/dnf/)（公网自动游客模式）；根路径 [http://113.44.64.151/](http://113.44.64.151/) 为项目导航页
+- **数据更新**：本地 `git push` 后，服务器执行 `~/apps/dnf-update.sh` 一键拉取发布（子路径多项目架构，加新项目只做加法）
+- 部署架构、服务器目录布局、加新项目流程与灾难恢复手册见 [DEPLOY.md](DEPLOY.md)

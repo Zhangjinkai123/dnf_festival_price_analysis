@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- 项目导航页(安装到服务器 /var/www/html/index.html);新项目上线时在此追加卡片 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目导航</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,"Microsoft YaHei",sans-serif;background:#f1f5f9;color:#0f172a}
+  main{width:min(680px,92vw)}
+  h1{font-size:1.4rem;margin:0 0 .35em}
+  p.sub{color:#64748b;margin:0 0 2rem;font-size:.95rem}
+  a.card{display:flex;gap:1rem;align-items:center;padding:1.25rem 1.5rem;background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(15,23,42,.08);text-decoration:none;color:inherit;transition:.15s}
+  a.card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,23,42,.12)}
+  .icon{font-size:2rem}.t{font-weight:600}
+  .d{color:#64748b;font-size:.88rem;margin-top:.25em}
+  .arrow{margin-left:auto;color:#94a3b8}
+  footer{margin-top:2rem;color:#94a3b8;font-size:.8rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>🧭 项目导航</h1>
+  <p class="sub">本服务器托管的项目列表 · 点击卡片进入</p>
+  <a class="card" href="/dnf/">
+    <span class="icon">🎮</span>
+    <span>
+      <span class="t">毒奶粉节日礼包物价记录档案与历史分析系统</span>
+      <div class="d">2025~2026 四大节日礼包 290+ 条道具价格明细 · 跨年同类对比分析</div>
+    </span>
+    <span class="arrow">→</span>
+  </a>
+  <footer>更多项目陆续上线</footer>
+</main>
+</body>
+</html>

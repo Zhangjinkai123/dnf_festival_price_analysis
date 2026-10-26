@@ -1,0 +1,14 @@
+# 毒奶粉物价站 线上 Caddy 配置(安装到服务器 /etc/caddy/Caddyfile)
+# 子路径多项目架构:各项目挂 /项目名/,根路径为项目导航页;加新项目只增 handle_path 块
+:80 {
+	encode zstd gzip
+	handle_path /dnf/* {
+		root * /var/www/dnf
+		file_server
+	}
+	redir /dnf /dnf/ 308
+	handle {
+		root * /var/www/html
+		file_server
+	}
+}
